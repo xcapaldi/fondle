@@ -1,0 +1,411 @@
+import dbus
+import dbus.service
+import dbus.mainloop.glib
+from gi.repository import GLib
+import os
+import subprocess
+import _thread
+import time
+import argparse
+import pathlib
+
+
+class Notification:
+    def __init__(
+        self,
+        default_timeout,
+        max_timeout,
+        summary,
+        body="",
+        timeout=-1,
+        hints=None,
+        app_name="",
+        replaces_id=None,
+        app_icon=None,
+        actions=None,
+    ):
+        self.summary = self.purge_markup(summary)
+        self.body = self.purge_markup(body)
+        # adjust the timeout based on defaults
+        if timeout < 0:
+            self.timeout = default_timeout
+        elif timeout > (max_timeout * 1000.0):
+            self.timeout = max_timeout
+        else:
+            self.timeout = timeout / 1000.0
+        self.hints = hints
+        self.app_name = app_name
+        self.replaces_id = replaces_id
+        self.app_icon = app_icon
+        self.actions = actions
+
+    # TODO
+    # If the input text includes a right-angle bracket, it will not be captured.
+    # If the input text includes a left-angle bracket, the rest of the text will not be included until another right-angle bracket.
+    # for example: "This is a <b>sample</b> notification > pretty cool <i>stuff</i>"
+    # will turn into: "This is a sample notification pretty cool stuff"
+    # for example: "This is a <b>sample</b> notification < pretty cool <i>stuff</i>"
+    # will turn into: "This is a sample notification stuff"
+    @staticmethod
+    def purge_markup(text):
+        in_tag = False
+        clean_text = ""
+        for character in text:
+            if character == "<":
+                in_tag = True
+            elif character == ">":
+                in_tag = False
+            else:
+                if in_tag:
+                    pass
+                else:
+                    clean_text += character
+
+        # replace newline characters
+        clean_text = clean_text.replace("\n", " ")
+
+        return clean_text
+
+
+class Manager:
+    def __init__(
+        self,
+        script,
+        executable,
+        command,
+        max_length,
+        replace_status,
+        separator,
+        prepend,
+        append,
+        log,
+    ):
+        self.notifications = []
+        self.script = script
+        self.executable = executable
+        self.command = command
+        self.max_length = max_length
+        self.replace_status = replace_status
+        self.separator = separator
+        self.prepend = prepend
+        self.append = append
+        self.log = log
+
+    def add_notification(self, notification):
+        self.notifications.append(notification)
+        notification_id = len(self.notifications)
+        return notification_id
+
+    def next_notification(self):
+        if len(self.notifications) == 0:
+            return None
+        else:
+            # discard the first 0s-timeouts
+            while len(self.notifications) > 1 and self.notifications[0].timeout == 0:
+                self.notifications.pop(0)
+            return self.notifications[0]
+
+    def get_status_text(self, notification=""):
+        if self.script == None or self.replace_status:
+            if notification != "":
+                status_text = self.prepend + notification + self.append
+            else:
+                status_text = ""
+        else:
+            try:
+                script_output = subprocess.run(
+                    [self.executable, self.script], capture_output=True
+                ).stdout.decode("utf-8")
+            except:
+                script_output = "status script output error"
+
+            if notification != "":
+                status_text = self.prepend + notification + self.append + script_output
+            else:
+                status_text = script_output
+
+            status_text = status_text.replace("\n", "")
+
+        return status_text
+
+    def update_status_with_notification(self, notification):
+        # create full status to be stored in log
+        log_text = self.get_status_text(
+            notification=notification.summary + self.separator + notification.body
+        )
+        if self.max_length == 0:
+            status_text = self.get_status_text(notification=notification.summary)
+        elif self.max_length == None:
+            status_text = log_text
+        else:
+            status_text = self.get_status_text(
+                notification=notification.summary
+                + self.separator
+                + notification.body[: self.max_length]
+                + "..."
+            )
+
+        if status_text != "":
+            subprocess.run(self.command.split() + [status_text])
+            with open(self.log, "a") as log_file:
+                log_file.write(log_text + "\n")
+        else:
+            pass
+
+    def update_status(self):
+        status_text = self.get_status_text()
+        if status_text != "":
+            subprocess.run(self.command.split() + [status_text])
+        else:
+            pass
+
+
+# the actual DBUS stuff
+class NotificationService(dbus.service.Object):
+    @dbus.service.method(
+        "org.freedesktop.Notifications", in_signature="susssasa{ss}i", out_signature="u"
+    )
+    def Notify(
+        self, app_name, replaces_id, app_icon, summary, body, actions, hints, timeout
+    ):
+        notification = Notification(
+            args.default_timeout,
+            args.max_timeout,
+            summary,
+            body,
+            timeout,
+            hints,
+            app_name,
+            replaces_id,
+            app_icon,
+            actions,
+        )
+        return manager.add_notification(notification)
+
+    @dbus.service.method(
+        "org.freedesktop.Notifications", in_signature="", out_signature="as"
+    )
+    def GetCapabilities(self):
+        return "body"
+
+    # don't do anything when the notification closes
+    @dbus.service.signal("org.freedesktop.Notifications", signature="uu")
+    def NotificationClosed(self, id_in, reason_in):
+        pass
+
+    # don't do anything to close notification
+    @dbus.service.method(
+        "org.freedesktop.Notifications", in_signature="u", out_signature=""
+    )
+    def CloseNotification(self, id):
+        pass
+
+    # put info about your server here
+    @dbus.service.method(
+        "org.freedesktop.Notifications", in_signature="", out_signature="ssss"
+    )
+    def GetServerInformation(self):
+        return ("fondle-notification-daemon", "fondle", "1.0", "1")
+
+
+# this used to just have dummy as an input
+def schedule(manager, update_interval):
+    last_status_update = 0
+    last_notification_update = 0
+    current_summary = ""
+    current_body = ""
+
+    while True:
+        # remove any notifications with 0 hold time
+        # take the most recent (but don't pop)
+        notification = manager.next_notification()
+        current_time = time.time()
+        update_status = False
+
+        if notification != None:
+            # if the text of the notification isn't identical to the current notification text
+            if (notification.summary != current_summary) or (
+                notification.body != current_body
+            ):
+                update_status = True
+
+            # otherwise, if the text IS the same, check if the duration of the current notification has expired
+            elif current_time > last_notification_update + notification.timeout:
+                # If requested timeout is zero, notification shows until a new notification arrives or a regular status message cleans it
+                if notification.timeout != 0:
+                    update_status = True
+
+                # Pop expired notification
+                manager.notifications.pop(0)
+                # then grab the next
+                notification = manager.next_notification()
+
+            # if the notification timed out, we want to record the time
+            # this will only NOT happen if the time of the timeout of the notification is 0, in which case, the notification will remain until a new notification arrives or the bar updates
+            if update_status == True:
+                last_notification_update = current_time
+
+        # if there is no notification in the queue
+        # and the status hasn't been updated since the proper update interval
+        elif current_time > last_status_update + update_interval:
+            update_status = True
+
+        # if any of the above are true
+        if update_status:
+            if notification != None:
+                current_summary = notification.summary
+                current_body = notification.body
+                manager.update_status_with_notification(notification)
+            else:
+                # otherwise, just update status
+                current_summary = ""
+                current_body = ""
+                manager.update_status()
+
+            last_status_update = current_time
+
+        time.sleep(0.1)
+
+
+if __name__ == "__main__":
+    # setup cli argument parser
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "script",
+        help="script to generate status",
+        nargs="?",
+        type=pathlib.Path,
+        default=None,
+    )
+    parser.add_argument(
+        "-x",
+        "--executable",
+        help="executable (on PATH) to run the status script (default: '%(default)s')",
+        type=pathlib.Path,
+        default=pathlib.Path("sh"),
+    )
+    parser.add_argument(
+        "-c",
+        "--command",
+        help="shell command to update status (default: '%(default)s')",
+        type=str,
+        default="echo",
+    )
+    parser.add_argument(
+        "-t",
+        "--default-timeout",
+        help="default notification timeout (default: %(default)s)",
+        type=float,
+        default=3.0,
+    )
+    parser.add_argument(
+        "-m",
+        "--max-timeout",
+        help="max notification timeout (default: %(default)ss)",
+        type=float,
+        default=5.0,
+    )
+    parser.add_argument(
+        "-l", "--max-length", help="max display length of notification body", type=int
+    )
+    parser.add_argument(
+        "-u",
+        "--update-interval",
+        help="status update interval (default: %(default)s)",
+        type=float,
+        default=2.0,
+    )
+    parser.add_argument(
+        "-r",
+        "--replace-status",
+        help="replace the status information with notification",
+        action="store_true",
+    )
+    parser.add_argument(
+        "-s",
+        "--separator",
+        help="separator between summary and body of notification (default: '%(default)s')",
+        type=str,
+        default=": ",
+    )
+    parser.add_argument(
+        "-p",
+        "--prepend",
+        help="prepend before notification (default: '%(default)s')",
+        type=str,
+        default="",
+    )
+    parser.add_argument(
+        "-a",
+        "--append",
+        help="append after notification (default: '%(default)s')",
+        type=str,
+        default=" ",
+    )
+    args = parser.parse_args()
+
+    # CHECK ARGUMENTS
+    # check script path
+    if args.script:
+        assert args.script.exists(), f"No script found at path: {args.script}"
+        # check if script has executable privileges
+        if not os.access(args.script, os.X_OK):
+            subprocess.run(["chmod", "+x", args.script])
+
+    # check that the command used to output final text is installed
+    assert (
+        subprocess.run(
+            ["which", args.command.split()[0]], stdout=subprocess.DEVNULL
+        ).returncode
+        == 0
+    ), f"{args.command.split()[0]} not found on PATH"
+
+    # check that input values make sense
+    assert args.max_timeout >= 0, "max-timeout may not be less than 0 sec"
+    assert args.default_timeout >= 0, "default-timeout may not be less than 0 sec"
+    assert (
+        args.max_timeout >= args.default_timeout
+    ), "max-timeout may not be less than default-timeout"
+    if args.max_length != None:
+        assert args.max_length >= 0, "max-length may not be less than 0"
+    assert args.update_interval >= 0, "update-interval may not be less than 0"
+
+    # create a temporary file to log notifications
+    log = pathlib.Path("/tmp/notification.log")
+    try:
+        os.remove(log)
+    except:
+        pass
+
+    # start dbus main loop, begin a session bus, create the notification service
+    dbus.mainloop.glib.DBusGMainLoop(set_as_default=True)
+    session_bus = dbus.SessionBus()
+    name = dbus.service.BusName("org.freedesktop.Notifications", session_bus)
+    manager = Manager(
+        args.script,
+        args.executable,
+        args.command,
+        args.max_length,
+        args.replace_status,
+        args.separator,
+        args.prepend,
+        args.append,
+        log,
+    )
+
+    # set up the service interface
+    service = NotificationService(session_bus, "/org/freedesktop/Notifications")
+
+    context = GLib.MainLoop().get_context()
+
+    # start the message thread
+    _thread.start_new_thread(
+        schedule,
+        (
+            manager,
+            args.update_interval,
+        ),
+    )
+
+    while True:
+        context.iteration(True)
