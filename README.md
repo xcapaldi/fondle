@@ -35,7 +35,7 @@ However, you can control what, if anything, should be prepended before the summa
 This makes it possible (with a compatible bar) to implement emojis and different colors for notifications in the bar.
 
 ```sh
-⚠ battery status: low
+🚩 battery status: low
 ``` 
 
 ### minimal modification of status script
