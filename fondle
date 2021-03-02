@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 import dbus
 import dbus.service
 import dbus.mainloop.glib
@@ -349,8 +351,8 @@ if __name__ == "__main__":
     if args.script:
         assert args.script.exists(), f"No script found at path: {args.script}"
         # check if script has executable privileges
-        if not os.access(args.script, os.X_OK):
-            subprocess.run(["chmod", "+x", args.script])
+        #if not os.access(args.script, os.X_OK):
+        #    subprocess.run(["chmod", "+x", args.script])
 
     # check that the command used to output final text is installed
     assert (
