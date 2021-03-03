@@ -239,6 +239,17 @@ bar {
 ```
 
 I'm still testing the best way to combine the output of i3status with `fondle`.
+For now, the best I can do is replace the output of i3status when you get a notification but the timing isn't correct.
+To do this, you need to add `output_format = none` in your general block of the i3status configuration.
+Then you can replace the i3status command in the bar config like this:
+
+```
+bar {
+    status_command fondle & i3status
+}
+```
+
+If you find a better way, let me know.
 
 ### xmobar
 This is untested but I believe you can just pipe the output into xmobar like this:
