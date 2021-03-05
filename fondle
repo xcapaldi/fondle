@@ -390,7 +390,10 @@ if __name__ == "__main__":
         file.write(pid)
 
     # if something goes wrong delete the pid_file
-    atexit.register(os.unlink(pid_file))
+    def delete_pid(file):
+        os.unlink(file)
+    
+    atexit.register(delete_pid, pid_file)
 
     # create a temporary file to log notifications
     log = pathlib.Path("/tmp/notification.log")
