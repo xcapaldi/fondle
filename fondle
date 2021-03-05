@@ -384,8 +384,10 @@ if __name__ == "__main__":
     if os.path.isfile(pid_file):
         print(f"{pid_file} already exists\nexiting")
         sys.exit()
+        
     # if the pid isn't present write a new file
-    file(pid_file, 'w').write(pid)
+    with open(pid_file, 'w') as file:
+        file.write(pid)
 
     # if something goes wrong delete the pid_file
     atexit.register(os.unlink(pid_file))
