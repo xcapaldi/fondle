@@ -138,12 +138,15 @@ class Manager:
     def update_status_with_notification(self, notification):
         # create full status to be stored in log
         log_text = self.get_status_text(
-            notification=notification.summary + self.separator + notification.body, log=True
+            notification=notification.summary + self.separator + notification.body,
+            log=True,
         )
         if self.max_length == 0 or not notification.body:
             status_text = self.get_status_text(notification=notification.summary)
         elif self.max_length == None:
-            status_text = self.get_status_text(notification=notification.summary + self.separator + notification.body)
+            status_text = self.get_status_text(
+                notification=notification.summary + self.separator + notification.body
+            )
         else:
             status_text = self.get_status_text(
                 notification=notification.summary
@@ -356,7 +359,7 @@ if __name__ == "__main__":
     if args.script:
         assert args.script.exists(), f"No script found at path: {args.script}"
         # check if script has executable privileges
-        #if not os.access(args.script, os.X_OK):
+        # if not os.access(args.script, os.X_OK):
         #    subprocess.run(["chmod", "+x", args.script])
 
     # check that the command used to output final text is installed
@@ -381,13 +384,13 @@ if __name__ == "__main__":
 
     # check that fondle is not already running
     try:
-        with open(pid_file, 'r') as file:
+        with open(pid_file, "r") as file:
             pid = int(file.read())
-            os.kill(pid, signal.SIGTERM) # or signal.SIGKILL
+            os.kill(pid, signal.SIGTERM)  # or signal.SIGKILL
     except:
         pass
 
-    with open(pid_file, 'w') as file:
+    with open(pid_file, "w") as file:
         # get pid of running process
         pid = str(os.getpid())
         file.write(pid)
