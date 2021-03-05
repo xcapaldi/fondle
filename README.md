@@ -4,6 +4,8 @@
 `fondle` is a notification daemon designed for minimal window managers and status bars.
 It works well with any system in which you would normally use a script to generate your status bar ([dwm](https://dwm.suckless.org/), [spectrwm](https://github.com/conformal/spectrwm), [lemonbar](https://github.com/LemonBoy/bar)) and was designed such that it can be implemented with minimal disturbance to your other configurations.
 
+[(long) video on features](https://www.youtube.com/watch?v=Us-vb5kWTNc)
+
 ## why another notification daemon?
 
 In most non-minimal window managers (XFCE, KDE, Gnome), notifications are implemented as small pop-up windows that appear for a few seconds before fading away.
