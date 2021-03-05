@@ -12,6 +12,7 @@ import time
 import argparse
 import pathlib
 import signal
+import atexit
 
 
 class Notification:
@@ -390,6 +391,9 @@ if __name__ == "__main__":
         # get pid of running process
         pid = str(os.getpid())
         file.write(pid)
+
+    # if something goes wrong, delete the pid_file
+    atexit.register(os.unlink, pid_file)
 
     # create a temporary file to log notifications
     log = pathlib.Path("/tmp/notification.log")
