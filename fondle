@@ -140,7 +140,7 @@ class Manager:
         if self.max_length == 0 or not notification.body:
             status_text = self.get_status_text(notification=notification.summary)
         elif self.max_length == None:
-            status_text = log_text
+            status_text = self.get_status_text(notification=notification.summary + self.separator + notification.body)
         else:
             status_text = self.get_status_text(
                 notification=notification.summary
