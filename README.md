@@ -222,10 +222,6 @@ Maybe you even want to use different markup for the summary and the body of the 
 
 fondle ~/.config/mybar.sh --prepend '+@bg=1;' --separator '+@bg=0;: +@bg=2;' --append '+@bg=0;'
 ```
-#### BUG
-Note that hot reloading in spectrwm causes fondle to break and it will not longer display notifications.
-Status text will still be displayed.
-When this occurs, you will need to run `sudo killall dbus-broker` which will kick you out of spectrwm and then log back in.
 
 ### lemonbar
 
