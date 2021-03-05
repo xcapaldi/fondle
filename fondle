@@ -108,7 +108,7 @@ class Manager:
             return self.notifications[0]
 
     def get_status_text(self, notification=""):
-        if self.script == None or self.replace_status:
+        if self.script == None:
             if notification != "":
                 status_text = self.prepend + notification + self.append
             else:
@@ -121,7 +121,9 @@ class Manager:
             except:
                 script_output = "status script output error"
 
-            if notification != "":
+            if notification != "" and self.replace_status:
+                status_text = self.prepend + notification + self.append
+            elif notification != "" and not self.replace_status:
                 status_text = self.prepend + notification + self.append + script_output
             else:
                 status_text = script_output
