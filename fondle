@@ -379,9 +379,12 @@ if __name__ == "__main__":
     pid_file = pathlib.Path("/tmp/fondle.pid")
 
     # check that fondle is not already running
-    with open(pid_file, 'r') as file:
-        pid = file.read()
-        os.kill(pid, signal.SIGTERM) # or signal.SIGKILL
+    try:
+        with open(pid_file, 'r') as file:
+            pid = int(file.read())
+            os.kill(pid, signal.SIGTERM) # or signal.SIGKILL
+    except:
+        pass
 
     with open(pid_file, 'w') as file:
         # get pid of running process
