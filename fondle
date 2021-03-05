@@ -5,11 +5,13 @@ import dbus.service
 import dbus.mainloop.glib
 from gi.repository import GLib
 import os
+import sys
 import subprocess
 import _thread
 import time
 import argparse
 import pathlib
+import atexit
 
 
 class Notification:
@@ -373,6 +375,20 @@ if __name__ == "__main__":
     if args.max_length != None:
         assert args.max_length >= 0, "max-length may not be less than 0"
     assert args.update_interval >= 0, "update-interval may not be less than 0"
+
+    # get the pid of this process
+    pid = str(os.getpid())
+    pid_file = pathlib.Path("/tmp/fondle.pid")
+
+    # check that fondle is not already running
+    if os.path.isfile(pid_file):
+        print(f"{pid_file} already exists\nexiting")
+        sys.exit()
+    # if the pid isn't present write a new file
+    file(pid_file, 'w').write(pid)
+
+    # if something goes wrong delete the pid_file
+    atexit.register(os.unlink(pid_file))
 
     # create a temporary file to log notifications
     log = pathlib.Path("/tmp/notification.log")
