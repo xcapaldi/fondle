@@ -191,7 +191,39 @@ Depending on your setup, you can run `fondle` in a variety of ways.
 Just as an example, we'll assume you have a script to generate your status stored in `.config/mybar.sh`.
 We'll keep the options as simple as possible.
 
-### dwm
+### Colored terminal output
+Need to specify `echo -e` so that that escape codes work.
+
+```sh
+fondle ~/.config/mybar.sh -c "echo -e" -p "\e[41m " -a "\e[0m | "
+```
+
+### Clone of rofication
+If you want to replicate the functionality of rofication, it isn't hard at all.
+You don't even need to use fondle to manage your status.
+In your current status script, add the following to record the number of notifications:
+
+```sh
+NOTI=`cat /tmp/notification.log | wc -l`
+```
+
+And then just echo this in your while loop:
+
+```sh
+echo -n "[${NOTI}]"
+```
+
+Now you'll have the number of notifications updated in your current status bar.
+But you want to remove/acknowledge notifications to reduce the number?
+
+Bind this to a key:
+
+```sh
+tac /tmp/notification.log | dmenu -l 50 | while read noti; do sed -i "/$noti/d" /tmp/notification.log ; done
+```
+
+This will launch dmenu with all of the notifications.
+Selecting a notification deletes it from the log and reduces the number in your status bar.
 
 ```sh
 fondle ~/.config/mybar.sh -c "xsetroot -name"
