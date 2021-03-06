@@ -225,6 +225,8 @@ tac /tmp/notification.log | dmenu -l 50 | while read noti; do sed -i "/$noti/d" 
 This will launch dmenu with all of the notifications.
 Selecting a notification deletes it from the log and reduces the number in your status bar.
 
+### dwm
+
 ```sh
 fondle ~/.config/mybar.sh -c "xsetroot -name"
 ```
