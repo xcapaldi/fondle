@@ -247,7 +247,7 @@ RAM Usage: $mem/$memmax
 Then use the `-x` flag without argument since conky is an executable already:
 
 ```
-fondle conky -x
+fondle /usr/bin/conky -x
 ```
 
 
