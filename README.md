@@ -138,6 +138,8 @@ The script can be in any language as long as you specify the appropriate executa
 ### -x EXECUTABLE, --executable EXECUTABLE
 This is the executable (which must be on PATH) with which the script should be run.
 It defaults to `sh` but you can easily write your status script in python and change it to `python` (or any other language).
+If you add this flag without an argument, it assumes the "script" is an executable.
+If you use conky to generate your status, you can use this flag: `fondle /usr/bin/conky -x`.
 
 ### -c COMMAND, --command COMMAND
 `fondle` generates the full status bar as a combination of notifications and your status script.
