@@ -118,9 +118,14 @@ class Manager:
                 status_text = ""
         else:
             try:
-                script_output = subprocess.run(
-                    [self.executable, self.script], capture_output=True
-                ).stdout.decode("utf-8")
+                if not self.executable:
+                    script_output = subprocess.run(
+                        [self.script], capture_output=True
+                    ).stdout.decode("utf-8")
+                else:
+                    script_output = subprocess.run(
+                        [self.executable, self.script], capture_output=True
+                    ).stdout.decode("utf-8")
             except:
                 script_output = "status script output error"
 
@@ -290,9 +295,11 @@ if __name__ == "__main__":
     parser.add_argument(
         "-x",
         "--executable",
-        help="executable (on PATH) to run the status script (default: '%(default)s')",
+        help="executable (on PATH) to run the status script (default: '%(default)s'); use this flag without argument if using conky to generate status",
+        nargs="?",
         type=pathlib.Path,
         default=pathlib.Path("sh"),
+        const=False,
     )
     parser.add_argument(
         "-c",

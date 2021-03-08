@@ -109,6 +109,7 @@ optional arguments:
   -x EXECUTABLE, --executable EXECUTABLE
                         executable (on PATH) to run the status script
                         (default: 'sh')
+			use this flag without argument if using conky to generate status
   -c COMMAND, --command COMMAND
                         shell command to update status (default: 'echo')
   -t DEFAULT_TIMEOUT, --default-timeout DEFAULT_TIMEOUT
@@ -224,6 +225,31 @@ tac /tmp/notification.log | dmenu -l 50 | while read noti; do sed -i "/$noti/d" 
 
 This will launch dmenu with all of the notifications.
 Selecting a notification deletes it from the log and reduces the number in your status bar.
+
+### conky to generate status
+Simple `conky.conf`:
+
+```
+conky.config = {
+    out_to_console = true,
+    out_to_x = false,
+    background = false,
+    update_interval = 0,
+    total_run_times = 1,
+    use_spacer = 'none',
+}
+
+conky.text = [[
+RAM Usage: $mem/$memmax
+]]
+```
+
+Then use the `-x` flag without argument since conky is an executable already:
+
+```
+fondle conky -x
+```
+
 
 ### dwm
 
