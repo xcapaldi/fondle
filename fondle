@@ -111,7 +111,7 @@ class Manager:
             return self.notifications[0]
 
     def get_status_text(self, notification="", log=False):
-        if self.script == None:
+        if self.script == None and not log:
             if notification != "":
                 status_text = self.prepend + notification + self.append
             else:
