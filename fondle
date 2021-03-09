@@ -111,9 +111,14 @@ class Manager:
             return self.notifications[0]
 
     def get_status_text(self, notification="", log=False):
-        if self.script == None or log:
+        if self.script == None:
             if notification != "":
                 status_text = self.prepend + notification + self.append
+            else:
+                status_text = ""
+        elif log:
+            if notification != "":
+                status_text = notification
             else:
                 status_text = ""
         else:
@@ -143,7 +148,7 @@ class Manager:
     def update_status_with_notification(self, notification):
         # create full status to be stored in log
         log_text = self.get_status_text(
-            notification=notification.summary + self.separator + notification.body,
+            notification=notification.summary + ": " + notification.body,
             log=True,
         )
         if self.max_length == 0 or not notification.body:
