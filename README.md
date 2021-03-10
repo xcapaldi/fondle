@@ -252,6 +252,9 @@ Then use the `-x` flag without argument since conky is an executable already:
 fondle /usr/bin/conky -x
 ```
 
+Note that some of conky's built in functions will not work well if it only run once.
+In particular RAM and network functions seem to be affected.
+You'll have to resort to hacks to get around this.
 
 ### dwm
 
