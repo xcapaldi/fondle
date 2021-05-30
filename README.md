@@ -262,6 +262,18 @@ You'll have to resort to hacks to get around this.
 fondle ~/.config/mybar.sh -c "xsetroot -name"
 ```
 
+### ratpoison
+Ratpoison has it's own messaging system which provides message boxes.
+We can interface with it quite easily by prepending the necessary command to our notification:
+
+```sh
+fondle -c "ratpoison -c" -p "echo "
+```
+
+As it stands currently, fondle cannot display regular status messages in ratpoison.
+This is due to how I've implemented the output format.
+I could modify fondle to allow this specific use-case if there is demand but I suspect that most ratpoison users don't want a persistent repeating popup notification.
+
 ### spectrwm
 spectrwm seems to require a shell script for its `bar_action` configuration option.
 That's no problem.
